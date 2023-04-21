@@ -1,0 +1,86 @@
+
+
+1. To create a table with the given columns:
+
+Create Table student_table
+(
+    student_id int,
+    student_name varchar(255),
+    classroom_id int,
+    classroom_name varchar(255),
+    course_id int,
+    course_name varchar(255),
+    subject_id int,
+    subject_name varchar(255),
+    subject_duration float(30),
+    schedule_start_time time,
+    schedule_end_time time,
+
+Constraint Studentid_PK Primay Key (student_id)
+
+);
+
+/
+2. Stored procedure :
+
+---To Create GUID for PK-----
+Declare @student_id uniqueidentifier
+Set @student_id = NEWID()
+
+Create or Replace Procedure Student_Proc1 
+(Stu_id IN Number, Stud OUT sys_refcursor)
+As
+Begin
+Open Stud for 
+Select student_id,
+      student_name,
+      classroom_id,
+      classroom_name,
+      course_id,
+      course_name,
+      subject_id,
+      subject_name,
+      subject_duration,
+(Select Sum(subject_duration) from student_table where student_id=stu_id group by course_name) as total_course_duration,
+select schedule_start_time,schedule_end_time,
+Case 
+when schedule_end_time is not null and schedule_start_time is not null then 'Completed'
+when schedule_end_time is null and schedule_start_time is not null then 'In-Progress'
+else 'na'
+end as status,
+      schedule_start_time,
+      schedule_end_time 
+From student_table
+Where student_id= Stu_id ;
+
+Exception 
+When Others Then
+DBMS_Output.put_line(sqlcode);  ----Gives the error code
+DBMS_Output.put_line(Dbms_utility.format_error_stack);  ----Gives the error code and message
+End;
+
+
+
+Output:
+
+Variable X refcursor;  ---Bind Variable
+Exec Student_Proc1  (Stu_id =>101, Stud  => :X);
+Print X;
+
+/
+Optimize the Query---
+
+EXPLAIN PLAN FOR select * from student_table ---It will gives the cost of that query
+
+
+select * from student_table (dbms_xplan.display) ---it displays the execution plan for each id, row and cost as well
+
+
+--If ths cost is higher or the index is not used then i will create index
+
+CREATE UNIQUE INDEX IDX1
+ON student_table (student_id, course_id);
+
+If the index doesnt reduce the cost then i will go with the partition table method respectively.
+
+/
